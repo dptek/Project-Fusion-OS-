@@ -2,7 +2,7 @@
 
 Project Fusion-OS is a portable encrypted workstation deployer that installs Arch Linux on a single USB drive with full-disk encryption and GRUB bootloader.
 
-## Features
+## 🚀 Features
 
 - **Full-Disk Encryption**: LUKS2 encryption with `argon2id` PBKDF for maximum security.
 - **GRUB Bootloader**: Direct UEFI and Legacy BIOS boot via GRUB with cryptodisk support.
@@ -12,7 +12,7 @@ Project Fusion-OS is a portable encrypted workstation deployer that installs Arc
 
 ---
 
-## Prerequisites
+## 🛠️ Prerequisites
 
 - An Arch Linux environment (as the script uses `pacstrap` and `arch-chroot`).
 - A USB drive with sufficient space (minimum 16GB recommended).
@@ -21,7 +21,7 @@ Project Fusion-OS is a portable encrypted workstation deployer that installs Arc
 
 ---
 
-## Step-by-Step Instructions
+## 📖 Step-by-Step Instructions
 
 ### 1. Basic Installation (Interactive)
 
@@ -50,7 +50,7 @@ sudo ./fusion_os_installer.sh --disk /dev/sdX --size 40960 --noninteractive \
 
 ---
 
-## CLI Options
+## 🚩 CLI Options
 
 | Option | Description | Example |
 | :--- | :--- | :--- |
@@ -66,7 +66,7 @@ sudo ./fusion_os_installer.sh --disk /dev/sdX --size 40960 --noninteractive \
 
 ---
 
-## Booting your Fusion-OS
+## 👢 Booting your Fusion-OS
 
 1. **Insert the USB** and boot from it.
 2. **Enter your LUKS passphrase** when prompted by the GRUB bootloader.
@@ -78,6 +78,6 @@ User credentials are saved at `/root/fusion_credentials.txt` inside the installe
 
 ---
 
-## Warning
+## ⚠️ Warning
 
 **This script is destructive.** It will completely wipe all data on the target disk. Double-check your target device name before executing.
