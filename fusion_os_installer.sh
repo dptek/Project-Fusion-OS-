@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ============================================================================
 #  Project Fusion-OS v2.0 — Ultimate Portable Encrypted Workstation Deployer
-#  Single USB · 6 Arch-based distros · LUKS2 full-disk encryption
+#  Single USB · LUKS2 full-disk encryption
 # ============================================================================
 set -euo pipefail
 
@@ -40,7 +40,7 @@ VG_NAME="fusion_vg"
 LUKS_UUID=""
 USER_NAME=""
 USER_PASS=""
-declare -A LV_MAP=( [arch]=arch_lv [cachyos]=cachyos_lv [archcraft]=archcraft_lv [biglinux]=biglinux_lv [manjaro]=manjaro_lv [mabox]=mabox_lv )
+declare -A LV_MAP=( [arch]=arch_lv )
 
 STANDALONE_GRUB_EFI=""  # Path to standalone GRUB EFI with embedded modules (set in step 4)
 
