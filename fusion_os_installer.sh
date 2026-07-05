@@ -189,17 +189,20 @@ check_network() {
     fi
 }
 
-MIRROR_TIMESTAMP_FILE="/tmp/fusion_mirror_last_run"
+MIRROR_TIMESTAMP_FILE="/etc/pacman.d/.fusion-mirror-timestamp"
+MIRROR_REFRESH_DAYS=15
 
 optimize_mirrors() {
     if command -v reflector &>/dev/null; then
-        # Skip if mirrors were optimized within the last hour
+        local refresh_seconds=$(( MIRROR_REFRESH_DAYS * 86400 ))
+
         if [ -f "${MIRROR_TIMESTAMP_FILE}" ]; then
-            local last_run elapsed
+            local last_run elapsed remaining
             last_run=$(cat "${MIRROR_TIMESTAMP_FILE}" 2>/dev/null || echo 0)
             elapsed=$(($(date +%s) - last_run))
-            if [ "${elapsed}" -lt 3600 ]; then
-                info "Mirrors were optimized ${elapsed}s ago (less than 1h). Skipping."
+            remaining=$(( refresh_seconds - elapsed ))
+            if [ "${elapsed}" -lt "${refresh_seconds}" ]; then
+                info "Mirrors last optimized ${elapsed}s ago. Next check in $(( remaining / 86400 )) day(s). Skipping."
                 return 0
             fi
         fi
