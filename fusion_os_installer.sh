@@ -987,9 +987,6 @@ Include = /etc/pacman.d/mirrorlist
 
 [extra]
 Include = /etc/pacman.d/mirrorlist
-
-[community]
-Include = /etc/pacman.d/mirrorlist
 CLEAN_CONF
 
     info "Running pacstrap for ${distro}..."
