@@ -4,11 +4,25 @@ Project Fusion-OS is a portable encrypted workstation deployer that installs Arc
 
 ## 🚀 Features
 
-- **Full-Disk Encryption**: LUKS2 encryption with `argon2id` PBKDF for maximum security.
-- **GRUB Bootloader**: Direct UEFI and Legacy BIOS boot via GRUB with cryptodisk support.
-- **Optimized for Flash**: Uses `ext4` without journaling to increase USB lifespan and write speed.
-- **Automated Configuration**: Automatic timezone, locale, and network setup.
-- **Flexible Deployment**: Supports both interactive and non-interactive (automated) installation.
+- **LUKS2 Full-Disk Encryption**: `argon2id` PBKDF with keyfile-based unlocking.
+- **Dual Boot Support**: UEFI (per-distro ESP entries + fallback `/EFI/BOOT/BOOTX64.EFI`) and Legacy BIOS (i386-pc MBR) via GRUB.
+- **Standalone GRUB EFI**: Embedded modules in a single binary — avoids `grub_memopy` symbol errors, no module loading from disk.
+- **GRUB Cryptodisk**: Built-in LUKS2 unlock at boot menu via `cryptomount`.
+- **Ext4 No-Journal**: Optimized for flash storage — reduces writes, increases USB lifespan.
+- **LVM Logical Volumes**: Flexible partition layout for future multi-distro expansion.
+- **Automated Configuration**: Timezone, locale, hostname, sudo/wheel, NetworkManager enable, fstrim, mkinitcpio hooks.
+- **First-Boot Network Helper**: Profile script and MOTD guide users through `nmtui`/`nmcli` WiFi setup.
+- **WiFi Auto-Import**: Detects host WiFi credentials from NetworkManager, `wpa_supplicant`, or interactive input and deploys to installed system.
+- **Resume Support**: Tracks progress via state file — interrupted installs can be resumed from the last successful step.
+- **Boot Repair Mode**: Rebuild GRUB config and standalone EFI without touching distro data.
+- **QEMU Boot Test**: Built-in QEMU launcher with UEFI (OVMF) and BIOS modes, serial console, snapshot mode.
+- **Interactive & Non-Interactive Modes**: Fully automated via CLI flags (`--disk`, `--size`, `--passphrase`, `--user`, `--password`, `--noninteractive`).
+- **Profile System**: Modular distro configuration (kernel, extra packages, repos, keyring, boot params, post-install hooks).
+- **Automatic Dependency Resolution**: Installs missing packages (`cryptsetup`, `lvm2`, `gptfdisk`, `arch-install-scripts`, etc.).
+- **Mirror Optimization**: Optional `reflector` integration for fastest package downloads.
+- **Network Resilience**: 3-attempt retry with 5s delay on all downloads; fallback ping/curl connectivity check.
+- **Safe Cleanup**: Trap-based teardown closes LUKS, deactivates LVM, unmounts filesystems, and removes keyfiles on exit or error.
+- **NVRAM Registration**: Optional `efibootmgr` boot entry creation for UEFI systems.
 
 ---
 
