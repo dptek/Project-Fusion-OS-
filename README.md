@@ -90,6 +90,21 @@ sudo ./fusion_os_installer.sh --disk /dev/sdX --size 40960 --noninteractive \
 
 User credentials are saved at `/root/fusion_credentials.txt` inside the installed system.
 
+### First Boot — WiFi Setup
+
+NetworkManager is pre-installed and enabled. On first boot, configure WiFi with:
+
+```bash
+# List available WiFi networks
+nmcli device wifi list
+
+# Connect to a network
+nmcli device wifi connect "SSID" password "password"
+
+# Or use interactive TUI
+nmtui
+```
+
 ---
 
 ## ⚠️ Warning
