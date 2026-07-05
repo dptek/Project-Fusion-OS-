@@ -189,13 +189,26 @@ check_network() {
     fi
 }
 
-optimize_mirrors() {
-    info "Testing mirror speeds and selecting fastest..."
+MIRROR_TIMESTAMP_FILE="/tmp/fusion_mirror_last_run"
 
+optimize_mirrors() {
     if command -v reflector &>/dev/null; then
+        # Skip if mirrors were optimized within the last hour
+        if [ -f "${MIRROR_TIMESTAMP_FILE}" ]; then
+            local last_run elapsed
+            last_run=$(cat "${MIRROR_TIMESTAMP_FILE}" 2>/dev/null || echo 0)
+            elapsed=$(($(date +%s) - last_run))
+            if [ "${elapsed}" -lt 3600 ]; then
+                info "Mirrors were optimized ${elapsed}s ago (less than 1h). Skipping."
+                return 0
+            fi
+        fi
+
+        info "Testing mirror speeds and selecting fastest..."
         cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.fusion-backup 2>/dev/null || true
         run_logged "REFLECTOR" reflector --latest 20 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
         rm -f /etc/pacman.d/mirrorlist.fusion-backup
+        date +%s > "${MIRROR_TIMESTAMP_FILE}"
         ok "Mirrors optimized by speed (reflector)."
     else
         warn "reflector not found — skipping mirror optimization."
