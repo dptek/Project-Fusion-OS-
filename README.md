@@ -110,3 +110,13 @@ nmtui
 ## ⚠️ Warning
 
 **This script is destructive.** It will completely wipe all data on the target disk. Double-check your target device name before executing.
+
+## 🧹 Known Issues & Security Considerations
+
+The following items are tracked in the script header for future maintenance:
+
+- **Passphrase in memory**: The LUKS passphrase is stored in a bash variable during setup. `unset` does not scrub the value from process memory. This is a fundamental bash limitation and not practically exploitable, but worth noting.
+- **Plaintext credentials**: User and root passwords are written to `/root/fusion_credentials.txt` (chmod 600) inside each deployed distro. Consider replacing or deleting this file after first login.
+- **State file**: Intermediate state is written to `/tmp/fusion_os_state_*`. The file is created with 600 permissions but resides in a world-readable directory.
+- **Duplicate code**: The `cryptsetup open` logic (with NONINTERACTIVE branching) is repeated in 4 places. A future refactor should extract a shared `open_luks()` helper.
+- **GRUB BIOS ESP mount**: The BIOS GRUB installation step bind-mounts the ESP even though `grub-install i386-pc` only writes to the MBR. This is harmless overhead from shared code paths.

@@ -2,6 +2,19 @@
 # ============================================================================
 #  Project Fusion-OS v2.0 — Ultimate Portable Encrypted Workstation Deployer
 #  Single USB · LUKS2 full-disk encryption
+#
+#  Known Issues (recorded for future cleanup):
+#  5. Passphrase lingers in bash process memory after `unset` — bash cannot
+#     scrub variables; not practically exploitable but worth noting.
+#  6. State file in /tmp — 600 perms but /tmp is world-readable.
+#  7. Duplicate cryptsetup open logic repeated in 4 places — refactor into
+#     a shared open_luks() helper.
+#  8. Second `source "${STATE_FILE}"` in main() at resume path is a no-op
+#     because load_state() already sourced it to global scope.
+#  9. GRUB BIOS (i386-pc) step bind-mounts ESP unnecessarily — not needed
+#     for MBR installation, just shared code with UEFI path.
+# 10. The `case $_dev in ${TARGET_DISK#/dev/})` in repartition_dual() is
+#     correct but the comment is vague; logic is non-obvious at first read.
 # ============================================================================
 set -euo pipefail
 
@@ -49,6 +62,7 @@ MNT_ROOT=""    # temp mount base
 LUKS_KEYFILE="" # track keyfile for trap cleanup
 cleanup_dirs=()
 SELECTED_DISTROS=()
+CREATED_LVS=()  # LVs created in current session; removed on success, cleaned up on failure
 
 # Existing deployment detection results
 EXISTING_LUKS=false
@@ -126,6 +140,13 @@ cleanup() {
     done
     if [ -n "${MNT_ROOT:-}" ] && mountpoint -q "${MNT_ROOT}" 2>/dev/null; then
         umount -R "${MNT_ROOT}" 2>/dev/null || true
+    fi
+    # Remove orphaned LVs when exiting on error (distro deployment failed mid-way)
+    if [ $exit_code -ne 0 ] && [ ${#CREATED_LVS[@]} -gt 0 ]; then
+        info "Removing orphaned LVs from failed deployment..."
+        for _olv in "${CREATED_LVS[@]}"; do
+            lvremove -f "${VG_NAME}/${_olv}" 2>/dev/null || true
+        done
     fi
     if [ -e "/dev/mapper/${LUKS_MAPPER}" ]; then
         vgchange -a n "${VG_NAME}" 2>/dev/null || true
@@ -258,9 +279,9 @@ confirm_destructive() {
 
 random_password() {
     if command -v openssl &>/dev/null; then
-        openssl rand -base64 24 | head -c 16
+        openssl rand -base64 24 | tr -dc 'A-Za-z0-9' | head -c 16
     elif [ -r /dev/urandom ]; then
-        head -c 32 /dev/urandom | base64 | head -c 16
+        head -c 32 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 16
     else
         die "Failed to generate random password (no /dev/urandom or openssl)."
     fi
@@ -952,6 +973,7 @@ create_distro_lv() {
 
     info "Formatting /dev/${VG_NAME}/${lv} as Ext4 (no journal)..."
     mkfs.ext4 -O "^has_journal" -F "/dev/${VG_NAME}/${lv}" || die "Failed to format ${lv}."
+    CREATED_LVS+=("${lv}")
     ok "LV '${lv}' created and formatted."
 }
 
@@ -1152,6 +1174,8 @@ CRED_EOF
     chmod 600 "${root_mnt}/root/fusion_credentials.txt"
 
     umount "${root_mnt}"
+    # Remove from orphan tracking — bootstrap completed successfully
+    CREATED_LVS=("${CREATED_LVS[@]/${lv}}")
     ok "${distro}: deployment complete."
 }
 
@@ -1532,9 +1556,12 @@ GRUB_BIOS_EOF
         info "Registering EFI boot entries..."
         for distro in "${SELECTED_DISTROS[@]}"; do
             local efi_path="\\EFI\\FusionOS_${distro}\\BOOTX64.EFI"
-            local base_disk="${TARGET_DISK}"
-            if [[ "$base_disk" == *"nvme"* ]] || [[ "$base_disk" == *"mmcblk"* ]]; then
-                base_disk="${base_disk%p[0-9]*}"
+            local base_disk
+            base_disk=$(lsblk -nd -o PKNAME "${PART_ESP}" 2>/dev/null || true)
+            if [ -z "${base_disk}" ]; then
+                base_disk="${TARGET_DISK}"
+            else
+                base_disk="/dev/${base_disk}"
             fi
             if efibootmgr --create --disk "${base_disk}" --part 2 \
                 --label "FusionOS ${distro}" \
@@ -1864,6 +1891,9 @@ step_import_wifi() {
     if $imported && [ -n "${ssid}" ] && [ -n "${psk}" ]; then
         local conn_uuid
         conn_uuid=$(uuidgen 2>/dev/null || head -c 32 /dev/urandom | md5sum | head -c 32 || echo "$(date +%s)$$")
+        # Escape NM keyfile special characters in the PSK
+        local escaped_psk
+        escaped_psk=$(printf '%s' "$psk" | sed 's/\\/\\\\/g; s/;/\\;/g; s/#/\\#/g; s/=/\\=/g; s/\[/\\[/g; s/\]/\\]/g')
         cat > "${tmp_dir}/fusion-os-wifi.nmconnection" << NMCFG
 [connection]
 id=${ssid}
@@ -1878,7 +1908,7 @@ hidden=false
 
 [wifi-security]
 key-mgmt=wpa-psk
-psk=${psk}
+psk=${escaped_psk}
 
 [ipv4]
 method=auto
