@@ -1175,7 +1175,11 @@ CRED_EOF
 
     umount "${root_mnt}"
     # Remove from orphan tracking — bootstrap completed successfully
-    CREATED_LVS=("${CREATED_LVS[@]/${lv}}")
+    local -a _remaining_lvs=()
+    for _olv in "${CREATED_LVS[@]}"; do
+        [ "$_olv" != "$lv" ] && _remaining_lvs+=("$_olv")
+    done
+    CREATED_LVS=("${_remaining_lvs[@]}")
     ok "${distro}: deployment complete."
 }
 
